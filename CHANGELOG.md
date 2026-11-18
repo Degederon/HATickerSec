@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.1] - 2026-11-18
+
+### Fixed
+
+- Sources that answer with **HTTP 202** (the site is still preparing its feed), such as PBS NewsHour, showed **Couldn't reach … (HTTP 202)**. Any successful answer is accepted now, and a 202 without the feed gets one more try a few seconds later.
+
 ## [1.0.0] - 2026-11-18
 
 ### Added

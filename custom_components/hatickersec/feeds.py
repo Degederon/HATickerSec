@@ -221,18 +221,30 @@ def _decode(raw: bytes, charset: str | None) -> str:
 
 async def _direct_fetch(session: aiohttp.ClientSession, url: str, timeout: float) -> str:
     status, web_page = 0, False
-    for headers in HEADERS:
+    # Each header set once; a "202 Accepted" (the site is still preparing the feed) gets one more try after a pause.
+    attempts = [(h, 0) for h in HEADERS]
+    retried_202 = False
+    i = 0
+    while i < len(attempts):
+        headers, wait = attempts[i]
+        i += 1
+        if wait:
+            await asyncio.sleep(wait)
         try:
             async with session.get(url, headers=headers, allow_redirects=True,
                                    timeout=aiohttp.ClientTimeout(total=timeout)) as res:
                 status = res.status
-                if res.status == 200:
+                if 200 <= res.status < 300:
                     raw = await res.content.read(MAX_BYTES)
                     text = _decode(raw, res.charset)
                     if looks_like_feed(text):
                         return text
-                    web_page = True  # try the next header set
-                    continue
+                    if res.status == 202 and not retried_202:
+                        retried_202 = True
+                        attempts.insert(i, (headers, 3))
+                        continue
+                    web_page = bool(text.strip())  # an empty 202 isn't a web page
+                    continue  # try the next header set
         except asyncio.TimeoutError:
             raise FeedError("the site took too long to answer") from None
         except aiohttp.ClientError as err:
@@ -241,6 +253,8 @@ async def _direct_fetch(session: aiohttp.ClientSession, url: str, timeout: float
             break
     if web_page:
         raise FeedError("site sent a web page instead of a feed")
+    if status == 202:
+        raise FeedError("the site is still preparing its feed (HTTP 202)")
     raise FeedError(f"HTTP {status}" + (" (site blocked the request)" if status == 403 else ""))
 
 
