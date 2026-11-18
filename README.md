@@ -8,7 +8,7 @@
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.8%2B-18BCF2.svg?logo=homeassistant&logoColor=white)](https://www.home-assistant.io/)
-[![Version](https://img.shields.io/badge/version-1.0.1-6E56CF.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.0.2-6E56CF.svg)](CHANGELOG.md)
 [![Languages](https://img.shields.io/badge/languages-English-2E9E6B.svg)](#languages)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -65,7 +65,7 @@ Need more detail? See the full [step-by-step setup](#step-by-step-setup) below.
 - [Dashboard configuration](#dashboard-configuration)
 - [News sources](#news-sources)
 - [Alerts](#alerts)
-- [Updates from your own folder](#updates-from-your-own-folder)
+- [Updates](#updates)
 - [Actions](#actions)
 - [Entities and events](#entities-and-events)
 - [Automation examples](#automation-examples)
@@ -94,7 +94,7 @@ Need more detail? See the full [step-by-step setup](#step-by-step-setup) below.
 | **Translation** | Headlines from sources in other languages are translated (Google, MyMemory, LibreTranslate or DeepL). Hover to see the original. |
 | **Custom feeds** | Paste any RSS or Atom address. **Test feed** checks it first, and **Test all agencies** outlines every source green or red. |
 | **Preview everything** | Try a NEW, keyword or breaking headline, a glow, a pop-up, a chime or a full breaking alert before it happens for real. |
-| **Updates from your own folder** | Besides HACS, HATickerSec can check a SharePoint, OneDrive or web folder for new versions and install them itself. |
+| **One-click updates** | **Check for updates** in the panel installs the newest GitHub release, no setup needed. The Marketplace and HACS offer it too. |
 | **Automation support** | An on/off switch, sensors for the latest alert and headline count, and an event for every new alert headline. |
 
 ## Take a tour
@@ -214,7 +214,7 @@ Changes are saved and shown on every screen straight away.
 - **Refreshing:** every source is checked every 5 minutes (change it under **Updates**). A source that can't be reached keeps its last headlines and shows why.
 - **New alerts:** a headline alerts once. Old headlines don't alert on start-up, and a headline that's already been seen never alerts again.
 - **Many alerts at once:** more than four at once become one pop-up that sums them up, so the screen doesn't fill up.
-- **Updates:** HATickerSec checks your update folder every few hours, if you've set one up, and shows a pop-up once per new version.
+- **Updates:** HATickerSec checks GitHub for a new release every few hours and shows a pop-up once per new version.
 
 ## Dashboard configuration
 
@@ -265,27 +265,14 @@ Everything else (bar height, text size, speed, colours, labels) is set once in t
 | **Chime** | Soft bell, glass ping, marimba, sonar blip or news flash, with a more urgent version for breaking news. |
 | **Quiet hours** | No chime between these times. Highlights and notifications still work. |
 
-## Updates from your own folder
+## Updates
 
-HATickerSec updates through the Marketplace or HACS like any other integration. It can also update itself from your own folder, such as SharePoint or OneDrive:
+Updates come from this repository's GitHub releases. There are two ways to get them, and both need nothing set up:
 
-1. Put `hatickersec.zip` and `latest.json` from a release in the folder.
-2. Share `hatickersec.zip` as **Anyone with the link**, and paste that link into the `installer` field of `latest.json`.
-3. Share `latest.json` as **Anyone with the link**, and paste its link under **HATickerSec → Updates → Update link**.
+- **Marketplace or HACS:** when a new release is published, Home Assistant offers the update like any other integration.
+- **The HATickerSec panel:** open **Updates** and select **Check for updates**, then **Install**. HATickerSec also checks by itself every few hours and shows a pop-up once per new version. The **Update** entity under **Settings → Updates** works the same way.
 
-HATickerSec checks the link every few hours, shows a pop-up once per new version, and installs it from the **Update** entity or the panel. It checks the download's size and `sha256` before installing. Restart Home Assistant afterwards.
-
-```json
-{
-  "name": "HATickerSec",
-  "version": "1.0.1",
-  "date": "2026-12-01",
-  "notes": "What's new",
-  "size": 74063,
-  "sha256": "…",
-  "installer": "https://…sharepoint.com/:u:/p/…"
-}
-```
+After installing, restart Home Assistant and refresh your browser.
 
 ## Actions
 
@@ -307,11 +294,11 @@ HATickerSec checks the link every few hours, shows a pop-up once per new version
 | `switch.hatickersec_pause_scrolling` | Pauses the bars on every screen. |
 | `switch.hatickersec_hide_docked_tickers` | Hides the docked tickers on every screen. Cards still show. |
 | `button.hatickersec_refresh_now` | Fetches every source now. |
-| `button.hatickersec_check_for_updates` | Checks your update folder now. |
+| `button.hatickersec_check_for_updates` | Checks GitHub for a new release now. |
 | `sensor.hatickersec_latest_alert` | The newest keyword or breaking headline, with `agency`, `why`, `breaking`, `keywords`, `link` and `time`. |
 | `sensor.hatickersec_headlines` | How many headlines are showing. |
 | `sensor.hatickersec_last_updated` | When headlines were last fetched, with how many sources are working or failing. |
-| `update.hatickersec_update` | A new version from your update folder, ready to install. |
+| `update.hatickersec_update` | A new release from GitHub, ready to install. |
 
 ### Events
 
@@ -400,7 +387,7 @@ actions:
 | Open the HATickerSec panel, change settings, run previews, install updates | Administrators |
 
 - Settings are stored locally in `.storage/hatickersec.settings`, and the alerted headlines in `.storage/hatickersec.alerts_seen`.
-- Feeds are fetched straight from each source you turn on. With translation on, headlines are sent to the translation service you pick. Nothing else leaves your Home Assistant, except through the notify service you configure and the update folder you set.
+- Feeds are fetched straight from each source you turn on. With translation on, headlines are sent to the translation service you pick. Nothing else leaves your Home Assistant, except through the notify service you configure and the update check, which reads this repository's latest release on GitHub.
 - Per device, **This device** settings are kept in that browser.
 
 ## WebSocket API
@@ -420,7 +407,7 @@ Custom frontends can use the following commands:
 | `hatickersec/translate_test` | Tests a translation service (administrators). |
 | `hatickersec/demo` | Runs a preview (administrators). |
 | `hatickersec/alert_test` | Sends a test alert (administrators). |
-| `hatickersec/update/state`, `/check`, `/install` | Checks for and installs updates from your folder (administrators). |
+| `hatickersec/update/state`, `/check`, `/install` | Checks for and installs the latest GitHub release (administrators). |
 
 ## Languages
 
@@ -457,7 +444,6 @@ Your browser hasn't loaded the display file. Work through these steps in order a
 | No chime | Turn on **Play a chime** under **Alerts**, check **Quiet hours**, and check **Play chimes on this device**. Browsers only allow sound after the screen has been touched once since the page loaded. |
 | No pop-ups | Check **Pop-up alert** for keywords or breaking news under **Alerts**, and **Show alert pop-ups on this device**. A headline only alerts once. |
 | Translation doesn't work | Select **Test translation**. The free Google option can slow down when used heavily; try MyMemory, or DeepL with a key. |
-| **Update link** says sign-in page | The file in SharePoint or OneDrive must be shared as **Anyone with the link**, not just people in your organization. |
 | The Marketplace doesn't offer an update | Open **HATickerSec** in the Marketplace, open the **⋮** menu and choose **Update information**. Updates appear once a new release is published on GitHub. |
 | Still the old version after an update | Restart Home Assistant, then hard-refresh the browser or reset the companion app's frontend cache. |
 

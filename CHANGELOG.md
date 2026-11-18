@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.2] - 2026-11-18
+
+### Changed
+
+- **Check for updates** in the panel now installs the newest release straight from GitHub. No links or setup: select **Check for updates**, then **Install**, and restart Home Assistant. The Update entity and the once-per-version pop-up work the same way.
+- The **Updates** tab no longer shows an update-link box.
+
 ## [1.0.1] - 2026-11-18
 
 ### Fixed
@@ -24,6 +31,6 @@ All notable changes to this project are documented in this file.
 - A setup step that picks up to four categories and where the tickers go.
 - Entities: an on/off switch, **Show only NEW headlines**, **Pause scrolling** and **Hide docked tickers** switches, **Refresh now** and **Check for updates** buttons, **Latest alert**, **Headlines** and **Last updated** sensors, and an **Update** entity.
 - The `hatickersec_alert` event, and the `hatickersec.refresh`, `hatickersec.preview`, `hatickersec.test_alert` and `hatickersec.toggle_category` actions.
-- Updates from your own SharePoint, OneDrive or web folder, checked against the size and `sha256` in `latest.json`.
+- App updates from inside HATickerSec.
 - The HATickerSec icon and logo in Home Assistant's lists (Home Assistant 2026.3 and later).
 - A ready-to-go dashboard, `dashboards/breaking-news.yaml`.

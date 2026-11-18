@@ -455,8 +455,8 @@ const BODY = `
 
         <div class="glass card">
           <div class="card-head"><h2>App updates</h2><span id="updVersion" class="pill"></span></div>
-          <p class="muted">HATickerSec checks your update folder for a newer version by itself and offers to install it. After installing, restart Home Assistant.</p>
-          <div class="field" style="margin-bottom:12px"><div class="flabel">Update link — the “Anyone with the link” share of <b>latest.json</b> (blank = the link built into this copy)</div><input id="manifestUrl" placeholder="https://…sharepoint.com/:u:/p/…"></div>
+          <p class="muted">HATickerSec checks for a newer version by itself and offers to install it. After installing, restart Home Assistant.</p>
+
           <div class="toggles" style="margin-top:14px">
             <label class="tgl"><input type="checkbox" id="autoCheck"><i></i><span><b>Check for updates automatically</b> when the app starts and every few hours</span></label>
           </div>
@@ -928,6 +928,15 @@ function initAlerts() {
 // ── App updates ─────────────────────────────────────────────────
 function showUpdate(st) {
   $('#updVersion').textContent = `Installed: ${st.current}`;
+  if (!st.configured) {
+    $('#updStatus').className = 'test-result';
+    $('#updStatus').textContent = 'Updates arrive through the Home Assistant Marketplace (or HACS). Nothing to set up.';
+    ['#updCheck', '#updInstall'].forEach(id => { $(id).style.display = 'none'; });
+    $('#autoCheck').closest('label').style.display = 'none';
+    return;
+  }
+  $('#updCheck').style.display = '';
+  $('#autoCheck').closest('label').style.display = '';
   const out = $('#updStatus');
   const msg = {
     idle: '',
@@ -947,8 +956,6 @@ function showUpdate(st) {
 
 async function initUpdates(st0) {
   bindCheck('autoCheck', () => S.updates.autoCheck, v => { S.updates.autoCheck = v; });
-  $('#manifestUrl').value = S.updates.manifestUrl || '';
-  $('#manifestUrl').addEventListener('change', () => { S.updates.manifestUrl = $('#manifestUrl').value.trim(); save(); });
   $('#updCheck').addEventListener('click', async () => { await saveNowAll(); showUpdate(await api.checkUpdate()); });
   $('#updInstall').addEventListener('click', async () => showUpdate(await api.installUpdate()));
   showUpdate(st0);

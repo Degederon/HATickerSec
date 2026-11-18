@@ -1,13 +1,9 @@
-"""App updates from your own update folder (SharePoint, OneDrive or any web address).
+"""App updates straight from GitHub.
 
-The folder holds two files with fixed names. Replacing a file in SharePoint keeps
-its share link, so the links never change:
-
-  latest.json    {"name": "HATickerSec HA", "version": "1.0.1", "date": "...", "notes": "...",
-                  "size": 123456, "sha256": "...", "installer": "<link to hatickersec.zip>"}
-  hatickersec.zip  the newest release (the custom_components/hatickersec folder)
-
-Both links must be shared as "Anyone with the link"; HATickerSec never asks anyone to sign in.
+HATickerSec reads the latest release of github.com/Degederon/HATickerSec. When it's
+newer than this copy, the panel and the Update entity offer to install it: the release's
+hatickersec.zip if one is attached (checked against its size and sha256), otherwise the
+release's source code. Nothing to set up, no links to share.
 """
 from __future__ import annotations
 
@@ -38,6 +34,9 @@ if TYPE_CHECKING:
     from .engine import TickerEngine
 
 _LOGGER = logging.getLogger(__name__)
+GITHUB_RELEASES = "https://api.github.com/repos/Degederon/HATickerSec/releases/latest"
+GITHUB_LATEST_PAGE = "https://github.com/Degederon/HATickerSec/releases/latest"
+GITHUB_ARCHIVE = "https://github.com/Degederon/HATickerSec/archive/refs/tags/{tag}.zip"
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
 MAX_ZIP = 50 * 1024 * 1024
 CONFIG_FILE = Path(__file__).parent / "update-config.json"
@@ -93,10 +92,11 @@ class Updater:
 
     # ── Links ──────────────────────────────────────────────────────
     def manifest_url(self) -> str:
-        return (self.engine.settings["updates"].get("manifestUrl") or baked_links().get("manifestUrl") or "").strip()
+        # A private update folder can still be built in (update-config.json); otherwise GitHub releases.
+        return (self.engine.settings["updates"].get("manifestUrl") or baked_links().get("manifestUrl") or GITHUB_RELEASES).strip()
 
     def public_state(self) -> dict:
-        return {**self.state, "current": VERSION, "configured": bool(self.manifest_url())}
+        return {**self.state, "current": VERSION, "configured": True}
 
     @callback
     def _set(self, **kw: Any) -> None:
@@ -134,10 +134,57 @@ class Updater:
             self.hass.async_create_background_task(self.async_check(False), f"{DOMAIN}_update_check")
 
     # ── Check ──────────────────────────────────────────────────────
+    async def _read_github(self) -> dict:
+        """The latest GitHub release, in the same shape as latest.json."""
+        session = async_get_clientsession(self.hass)
+        try:
+            async with session.get(GITHUB_RELEASES, headers={"User-Agent": "HATickerSec", "Accept": "application/vnd.github+json"},
+                                   timeout=aiohttp.ClientTimeout(total=30)) as res:
+                if res.status == 404:
+                    raise UpdateError("no release has been published on GitHub yet", "http")
+                if res.status in (403, 429):
+                    return await self._read_github_page()   # API limit reached: use the release page instead
+                if res.status != 200:
+                    raise UpdateError(f"couldn’t reach GitHub (HTTP {res.status})", "http")
+                rel = await res.json(content_type=None)
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise UpdateError(f"couldn’t reach GitHub ({err.__class__.__name__})", "http") from None
+        version = str(rel.get("tag_name") or "").lstrip("vV")
+        if not version:
+            raise UpdateError("the latest GitHub release has no version tag", "bad")
+        asset = next((a for a in rel.get("assets") or [] if str(a.get("name", "")).lower().endswith(".zip")), None)
+        notes = (rel.get("body") or "").strip()
+        first = next((ln.strip(" -*#") for ln in notes.splitlines() if ln.strip(" -*#")), "")
+        return {
+            "version": version,
+            "notes": first[:200],
+            "date": (rel.get("published_at") or "")[:10],
+            "installer": asset["browser_download_url"] if asset else rel.get("zipball_url") or "",
+            "size": int(asset.get("size") or 0) if asset else 0,
+            "sha256": (asset.get("digest") or "").removeprefix("sha256:") if asset else "",
+        }
+
+    async def _read_github_page(self) -> dict:
+        """Without the API: github.com/…/releases/latest redirects to the latest tag."""
+        session = async_get_clientsession(self.hass)
+        try:
+            async with session.get(GITHUB_LATEST_PAGE, headers={"User-Agent": UA}, allow_redirects=False,
+                                   timeout=aiohttp.ClientTimeout(total=30)) as res:
+                where = res.headers.get("Location", "")
+        except (aiohttp.ClientError, TimeoutError) as err:
+            raise UpdateError(f"couldn’t reach GitHub ({err.__class__.__name__})", "http") from None
+        m = re.search(r"/releases/tag/([^/?#]+)", where)
+        if not m:
+            raise UpdateError("GitHub asked to wait a little — HATickerSec will try again later", "http")
+        tag = m.group(1)
+        return {"version": tag.lstrip("vV"), "notes": "", "date": "", "installer": GITHUB_ARCHIVE.format(tag=tag), "size": 0, "sha256": ""}
+
     async def _read_manifest(self) -> dict:
+        if self.manifest_url() == GITHUB_RELEASES:
+            return await self._read_github()
         url = direct_link(self.manifest_url())
         if not url:
-            raise UpdateError("Updates are not set up in this copy — add the latest.json link under Updates", "nolink")
+            raise UpdateError("Updates are not set up in this copy", "nolink")
         session = async_get_clientsession(self.hass)
         try:
             async with session.get(url, headers={"User-Agent": UA, "Cache-Control": "no-cache"}, allow_redirects=True,
@@ -165,7 +212,7 @@ class Updater:
             return self.public_state()
         if not self.manifest_url():
             if manual:
-                self._set(status="error", error="Updates are not set up in this copy — add the latest.json link under Updates")
+                self._set(status="error", error="Updates are not set up in this copy")
             return self.public_state()
         self._set(status="checking", error=None)
         try:
