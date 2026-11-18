@@ -1,0 +1,14 @@
+{
+  "domain": "hatickersec",
+  "name": "HATickerSec",
+  "codeowners": ["@Degederon"],
+  "config_flow": true,
+  "dependencies": ["http", "frontend", "panel_custom", "websocket_api", "persistent_notification"],
+  "documentation": "https://github.com/Degederon/HATickerSec",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
+  "issue_tracker": "https://github.com/Degederon/HATickerSec/issues",
+  "requirements": [],
+  "single_config_entry": true,
+  "version": "1.0.0"
+}

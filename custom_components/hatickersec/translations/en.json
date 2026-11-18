@@ -1,0 +1,98 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Welcome to HATickerSec",
+        "description": "**Breaking News feeds**, right in Home Assistant. HATickerSec brings the latest headlines from trusted news and security sources and scrolls them in sleek, glassy tickers.\n\nChoose up to **4** categories to start with. Each one comes with its trusted sources, ready to go — you can fine-tune everything later in the **HATickerSec** panel in the sidebar ({count} sources to pick from).",
+        "data": {
+          "categories": "What would you like to follow?",
+          "position": "Where should the tickers go?"
+        },
+        "data_description": {
+          "position": "Top or bottom docks the tickers across every Home Assistant screen (each device can switch this off). You can also add the HATickerSec card to any dashboard."
+        }
+      }
+    },
+    "error": {
+      "pick_one": "Pick at least one category.",
+      "too_many": "You can choose up to 4 — remove one to continue."
+    },
+    "abort": {
+      "single_instance_allowed": "HATickerSec is already set up. Open the HATickerSec panel in the sidebar to change it."
+    }
+  },
+  "entity": {
+    "switch": {
+      "active": {
+        "name": "HATickerSec"
+      },
+      "only_new": {
+        "name": "Show only NEW headlines"
+      },
+      "paused": {
+        "name": "Pause scrolling"
+      },
+      "hidden": {
+        "name": "Hide docked tickers"
+      }
+    },
+    "sensor": {
+      "last_updated": {
+        "name": "Last updated"
+      },
+      "headlines": {
+        "name": "Headlines"
+      },
+      "latest_alert": {
+        "name": "Latest alert"
+      }
+    },
+    "button": {
+      "refresh": {
+        "name": "Refresh now"
+      },
+      "check_updates": {
+        "name": "Check for updates"
+      }
+    },
+    "update": {
+      "app_update": {
+        "name": "Update"
+      }
+    }
+  },
+  "services": {
+    "refresh": {
+      "name": "Refresh now",
+      "description": "Fetch every enabled news source right away."
+    },
+    "preview": {
+      "name": "Preview",
+      "description": "Show what an alert looks like on every screen.",
+      "fields": {
+        "kind": {
+          "name": "What to preview",
+          "description": "new, keyword, breaking, glow, popup-keyword, popup-breaking, ha, chime, chime-breaking or everything."
+        }
+      }
+    },
+    "test_alert": {
+      "name": "Test alert",
+      "description": "Send a test alert the way alerts are set to pop up."
+    },
+    "toggle_category": {
+      "name": "Collapse or expand a category",
+      "description": "Show a category as one combined bar, or one bar per source.",
+      "fields": {
+        "category": {
+          "name": "Category",
+          "description": "e.g. Cybersecurity"
+        },
+        "collapsed": {
+          "name": "Collapsed",
+          "description": "Leave out to toggle."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+refresh:
+preview:
+  fields:
+    kind:
+      required: true
+      example: everything
+      selector:
+        select:
+          options: [new, keyword, breaking, glow, popup-keyword, popup-breaking, ha, chime, chime-breaking, everything]
+test_alert:
+toggle_category:
+  fields:
+    category:
+      required: true
+      example: Cybersecurity
+      selector:
+        select:
+          options: [United States, Cybersecurity, Government Cyber Alerts, Technology, Science & Space, Health, Business & Markets, Sports, Weather & Disasters, Gaming]
+    collapsed:
+      selector:
+        boolean:

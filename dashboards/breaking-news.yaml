@@ -1,0 +1,61 @@
+# HATickerSec: a ready-to-go dashboard
+#
+# 1. Settings → Dashboards → + Add dashboard → New dashboard from scratch.
+#    Name it "Breaking News", select Create, and open it from the sidebar.
+# 2. Select the pencil, then ⋮ → Raw configuration editor.
+# 3. Replace everything with this file, select Save, then Done.
+#
+# News: every ticker, full screen, for a wall tablet.
+# Control: the switches, the latest alert and when headlines were last updated.
+# Nothing to edit: both views use the sources picked in the HATickerSec panel.
+title: Breaking News
+views:
+  - title: News
+    path: news
+    icon: mdi:newspaper-variant-multiple
+    type: panel
+    cards:
+      - type: custom:hatickersec-card
+
+  - title: Control
+    path: control
+    icon: mdi:tune-variant
+    type: sections
+    max_columns: 2
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Latest alert
+            icon: mdi:bell-alert
+          - type: markdown
+            content: >-
+              {% set a = states.sensor.hatickersec_latest_alert %}
+              {% if a and a.state not in ['unknown', 'unavailable'] %}
+              **{{ a.attributes.agency }}** · {{ a.attributes.why }}
+
+              [{{ a.state }}]({{ a.attributes.link }})
+              {% else %}
+              No alerts yet. Your keywords and breaking news show up here.
+              {% endif %}
+          - type: tile
+            entity: sensor.hatickersec_last_updated
+          - type: tile
+            entity: sensor.hatickersec_headlines
+      - type: grid
+        cards:
+          - type: heading
+            heading: Tickers
+            icon: mdi:tune-variant
+          - type: tile
+            entity: switch.hatickersec
+            features:
+              - type: toggle
+          - type: tile
+            entity: switch.hatickersec_show_only_new_headlines
+          - type: tile
+            entity: switch.hatickersec_pause_scrolling
+          - type: tile
+            entity: switch.hatickersec_hide_docked_tickers
+          - type: tile
+            entity: button.hatickersec_refresh_now

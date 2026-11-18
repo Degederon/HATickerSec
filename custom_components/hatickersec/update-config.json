@@ -1,0 +1,5 @@
+{
+  "comment": "Built-in update links. Every copy of HATickerSec checks manifestUrl for a newer version. Put the 'Anyone with the link' share links of latest.json and hatickersec.zip from the HATickerSec folder here before building a release. Leave blank to set the link in the HATickerSec panel under Updates.",
+  "manifestUrl": "",
+  "installerUrl": ""
+}
