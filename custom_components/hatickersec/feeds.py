@@ -22,6 +22,12 @@ HEADERS = [
     {"User-Agent": UA, "Accept": "application/rss+xml, application/atom+xml, application/xml, text/xml;q=0.9, */*;q=0.5", "Accept-Language": "en-US,en;q=0.9"},
     # Second try: exactly what a browser sends when opening a page.
     {"User-Agent": UA, "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "Accept-Language": "en-US,en;q=0.9", "Cache-Control": "no-cache"},
+    # Third try: every header a Chrome tab sends (some bot protections check them all).
+    {"User-Agent": UA, "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+     "Accept-Language": "en-US,en;q=0.9", "Accept-Encoding": "gzip, deflate", "Cache-Control": "max-age=0",
+     "Sec-Ch-Ua": '"Chromium";v="130", "Google Chrome";v="130", "Not?A_Brand";v="99"', "Sec-Ch-Ua-Mobile": "?0",
+     "Sec-Ch-Ua-Platform": '"Windows"', "Sec-Fetch-Dest": "document", "Sec-Fetch-Mode": "navigate",
+     "Sec-Fetch-Site": "none", "Sec-Fetch-User": "?1", "Upgrade-Insecure-Requests": "1"},
 ]
 RETRY_STATUSES = {401, 403, 406, 429, 503}
 MAX_BYTES = 20 * 1024 * 1024
@@ -168,7 +174,7 @@ def parse_feed(xml: str) -> dict:
         feed = parse_feed_lenient(xml)
         if feed["items"]:
             return feed
-        raise FeedError(f"the feed is not valid XML ({err})") from None
+        raise FeedError(f"the feed is not valid XML ({err}; {max(1, round(len(xml.encode()) / 1024))} KB received)") from None
     kind = _local(root.tag)
 
     if kind == "rss":  # RSS 2.0
@@ -255,6 +261,16 @@ def _decode(raw: bytes, charset: str | None) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
+_PAGE_TITLE = re.compile(r"<title[^>]*>\s*([^<]{1,80})", re.IGNORECASE)
+
+
+def _describe(text: str, status: int) -> str:
+    """A short description of a web page a site sent instead of its feed."""
+    title = _PAGE_TITLE.search(text[:20000])
+    what = f"“{_SPACE.sub(' ', html.unescape(title.group(1))).strip()}”" if title else ("empty" if not text.strip() else "no title")
+    return f"{what}, {max(1, round(len(text.encode()) / 1024))} KB, HTTP {status}"
+
+
 async def _read_all(res: aiohttp.ClientResponse) -> bytes:
     """The whole answer. (content.read(n) returns only what has arrived so far, which cut big feeds short.)"""
     buf = bytearray()
@@ -266,7 +282,7 @@ async def _read_all(res: aiohttp.ClientResponse) -> bytes:
 
 
 async def _direct_fetch(session: aiohttp.ClientSession, url: str, timeout: float) -> str:
-    status, web_page = 0, False
+    status, web_page = 0, ""
     # Each header set once; a "202 Accepted" (the site is still preparing the feed) gets one more try after a pause.
     attempts = [(h, 0) for h in HEADERS]
     retried_202 = False
@@ -289,7 +305,8 @@ async def _direct_fetch(session: aiohttp.ClientSession, url: str, timeout: float
                         retried_202 = True
                         attempts.insert(i, (headers, 3))
                         continue
-                    web_page = bool(text.strip())  # an empty 202 isn't a web page
+                    if text.strip():
+                        web_page = _describe(text, res.status)  # an empty 202 isn't a web page
                     continue  # try the next header set
         except asyncio.TimeoutError:
             raise FeedError("the site took too long to answer") from None
@@ -298,7 +315,7 @@ async def _direct_fetch(session: aiohttp.ClientSession, url: str, timeout: float
         if status not in RETRY_STATUSES:
             break
     if web_page:
-        raise FeedError("site sent a web page instead of a feed")
+        raise FeedError(f"site sent a web page instead of a feed: {web_page}")
     if status == 202:
         raise FeedError("the site is still preparing its feed (HTTP 202)")
     raise FeedError(f"HTTP {status}" + (" (site blocked the request)" if status == 403 else ""))

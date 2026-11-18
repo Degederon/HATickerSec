@@ -12,6 +12,8 @@ All notable changes to this project are documented in this file.
 ### Added
 
 - Built-in sources can have a second address, used when a site blocks Home Assistant.
+- One more try that sends every header a Chrome tab sends, for sites whose bot protection checks them.
+- Clearer errors on a bar: when a site sends a web page instead of its feed, the bar names the page (its title, size and status), and a broken feed shows how much arrived.
 
 ## [1.0.4] - 2026-11-18
 
