@@ -244,10 +244,18 @@ class TickerEngine:
     # ── Fetching ───────────────────────────────────────────────────
     async def _load_agency(self, agency: dict, s: dict) -> dict:
         session = async_get_clientsession(self.hass)
-        feed = await fetch_feed(session, agency["url"])
+        url = agency["url"]
+        try:
+            feed = await fetch_feed(session, url)
+        except FeedError:
+            # Some sites block requests that don't come from a web browser: use the source's second address.
+            if not agency.get("fallback"):
+                raise
+            url = agency["fallback"]
+            feed = await fetch_feed(session, url)
         items = feed["items"]
         # Google News titles end with the real outlet ("... - KHOU"): show that as the source.
-        if _GOOGLE_NEWS.search(agency["url"]):
+        if _GOOGLE_NEWS.search(url):
             out = []
             for i in items:
                 m = _PUBLISHER.match(i["title"])

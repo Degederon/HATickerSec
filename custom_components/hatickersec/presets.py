@@ -1,6 +1,8 @@
 """Built-in news agencies. Each one is an RSS/Atom feed (or the CISA KEV JSON).
 
 lang = the language the feed is written in (used for translation).
+fallback = a second address to use when a site blocks Home Assistant (optional).
+CNN no longer updates its own RSS feeds (frozen since 2023), so CNN comes through Google News.
 Add your own from the HATickerSec panel with "Add a custom feed".
 """
 from __future__ import annotations
@@ -19,8 +21,8 @@ PRESETS: list[dict] = [
     {"id": "cbs", "name": "CBS News", "region": "United States", "lang": "en", "color": "#3d7bd9", "url": "https://www.cbsnews.com/latest/rss/main"},
     {"id": "abcus", "name": "ABC News", "region": "United States", "lang": "en", "color": "#f5c518", "url": "https://abcnews.go.com/abcnews/topstories"},
     {"id": "fox", "name": "Fox News", "region": "United States", "lang": "en", "color": "#d62d20", "url": "https://moxie.foxnews.com/google-publisher/latest.xml"},
-    {"id": "cnn", "name": "CNN", "region": "United States", "lang": "en", "color": "#cc0000", "url": "http://rss.cnn.com/rss/edition.rss"},
-    {"id": "pbs", "name": "PBS NewsHour", "region": "United States", "lang": "en", "color": "#5b8def", "url": "https://www.pbs.org/newshour/feeds/rss/headlines"},
+    {"id": "cnn", "name": "CNN", "region": "United States", "lang": "en", "color": "#cc0000", "url": "https://news.google.com/rss/search?q=site%3Acnn.com+when%3A1d&hl=en-US&gl=US&ceid=US:en"},
+    {"id": "pbs", "name": "PBS NewsHour", "region": "United States", "lang": "en", "color": "#5b8def", "url": "https://www.pbs.org/newshour/feeds/rss/headlines", "fallback": "https://news.google.com/rss/search?q=site%3Apbs.org%2Fnewshour+when%3A1d&hl=en-US&gl=US&ceid=US:en"},
     # ── United Kingdom ──────────────────────────────────────────────
     {"id": "bbc", "name": "BBC News", "region": "United Kingdom", "lang": "en", "color": "#bb1919", "url": "https://feeds.bbci.co.uk/news/rss.xml"},
     {"id": "bbcworld", "name": "BBC World", "region": "United Kingdom", "lang": "en", "color": "#e8473b", "url": "https://feeds.bbci.co.uk/news/world/rss.xml"},

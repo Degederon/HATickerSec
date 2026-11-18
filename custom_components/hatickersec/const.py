@@ -5,7 +5,7 @@ import copy
 
 DOMAIN = "hatickersec"
 NAME = "HATickerSec"
-VERSION = "1.0.4"
+VERSION = "1.0.5"
 
 SIGNAL_UPDATE = f"{DOMAIN}_update"
 EVENT_ALERT = f"{DOMAIN}_alert"

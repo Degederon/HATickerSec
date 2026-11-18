@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.5] - 2026-11-18
+
+### Fixed
+
+- **CNN** showed an error, and even when it loaded, only stories from 2023: CNN stopped updating its own RSS feeds. CNN's live headlines now come through Google News.
+- **PBS NewsHour** blocks requests that don't come from a web browser. HATickerSec still tries PBS's own feed first, and when it's blocked, uses PBS NewsHour's live headlines through Google News.
+
+### Added
+
+- Built-in sources can have a second address, used when a site blocks Home Assistant.
+
 ## [1.0.4] - 2026-11-18
 
 ### Fixed
