@@ -69,6 +69,15 @@ check(r["items"][0]["link"] == "https://dw.com/x1", "RSS 1.0 (RDF) uses rdf:abou
 KEV = '{"title":"KEV","vulnerabilities":[{"cveID":"CVE-2026-1111","vulnerabilityName":"Acme RCE","dateAdded":"2026-01-02"}]}'
 check(feeds.is_kev_json(KEV) and feeds.parse_kev(KEV)["items"][0]["title"] == "CVE-2026-1111: Acme RCE — actively exploited", "CISA KEV JSON")
 
+BROKEN = """<?xml version="1.0"?><rss version="2.0"><channel><title>Broken News</title><language>en</language>
+<item><title>Stocks <fall> after report</title><link>https://ex.com/1</link><pubDate>Tue, 18 Nov 2025 13:00:00 GMT</pubDate></item>
+<item><title><![CDATA[Storm hits coast]]></title><link>https://ex.com/2</link></item>
+<item><title>Unclosed <b>tag story</title><link>https://ex.com/3</link></item>
+</channel></rss> junk after the end <"""
+b = feeds.parse_feed(BROKEN)
+check(b["title"] == "Broken News" and len(b["items"]) == 3, "broken XML still gives its headlines (forgiving reader)")
+check(b["items"][1]["title"] == "Storm hits coast" and b["items"][0]["link"] == "https://ex.com/1" and b["items"][0]["date"], "forgiving reader: titles, links and dates")
+
 # ── Alerts ───────────────────────────────────────────────────────
 cfg = {"keywords": ["Steelers", "Oak Creek", "hurrican*"], "breaking": True, "breakingFront": True,
        "breakingWords": ["BREAKING", "LIVE", "URGENT", "JUST IN"]}

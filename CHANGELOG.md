@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.4] - 2026-11-18
+
+### Fixed
+
+- Big feeds, or feeds that arrive slowly, were cut short after the first few kilobytes. That showed as **the feed is not valid XML (unclosed token …)** (CNN) or **site sent a web page instead of a feed** (PBS NewsHour). HATickerSec now reads the whole feed.
+- Feeds with broken XML (unescaped characters, junk after the end) still show their headlines, read the forgiving way.
+
 ## [1.0.3] - 2026-11-18
 
 ### Fixed

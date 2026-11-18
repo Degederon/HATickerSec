@@ -7,7 +7,7 @@
 if (window.__hatickersecLoaded) return;
 window.__hatickersecLoaded = true;
 
-const VERSION = '1.0.3';
+const VERSION = '1.0.4';
 const PANEL_PATH = '/hatickersec';
 
 // ── This device ─────────────────────────────────────────────────────

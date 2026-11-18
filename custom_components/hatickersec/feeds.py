@@ -127,11 +127,47 @@ def _prepare(xml: str) -> str:
     return _NAMED.sub(_fix_entity, xml)
 
 
+_BLOCK = re.compile(r"<(item|entry)\b[^>]*>(.*?)</\1\s*>", re.IGNORECASE | re.DOTALL)
+_FIELD = lambda name: re.compile(rf"<(?:[\w-]+:)?{name}\b[^>]*>(.*?)</(?:[\w-]+:)?{name}\s*>", re.IGNORECASE | re.DOTALL)
+_F_TITLE, _F_LINK, _F_GUID = _FIELD("title"), _FIELD("link"), _FIELD("guid")
+_F_DATES = [_FIELD(n) for n in ("pubDate", "date", "updated", "published")]
+_HREF = re.compile(r"<(?:[\w-]+:)?link\b[^>]*\bhref=[\"']([^\"']+)[\"']", re.IGNORECASE)
+_ABOUT = re.compile(r"\brdf:about=[\"']([^\"']+)[\"']", re.IGNORECASE)
+_CHANNEL_TITLE = re.compile(r"<(?:channel|feed)\b[^>]*>.*?<title\b[^>]*>(.*?)</title>", re.IGNORECASE | re.DOTALL)
+_LANG = re.compile(r"<(?:\w+:)?language>\s*([A-Za-z]{2})|xml:lang=[\"']([A-Za-z]{2})", re.IGNORECASE)
+
+
+def _first(rx: re.Pattern, text: str) -> str:
+    m = rx.search(text)
+    return m.group(1) if m else ""
+
+
+def parse_feed_lenient(xml: str) -> dict:
+    """For feeds with broken XML: pick out each item's title, link and date directly."""
+    items = []
+    for m in _BLOCK.finditer(xml):
+        tag, body = m.group(1), m.group(2)
+        open_tag = xml[m.start(): xml.find(">", m.start()) + 1]
+        link = _first(_F_LINK, body).strip()
+        if not link or "<" in link:
+            link = _first(_HREF, body) or _first(_F_GUID, body) or _first(_ABOUT, open_tag)
+        date_text = next((d for d in (_first(rx, body) for rx in _F_DATES) if d), "")
+        items.append({"title": clean_title(_first(_F_TITLE, body)), "link": _clean_link(clean_title(link)),
+                      "date": _parse_date(clean_title(date_text))})
+    lang = _LANG.search(xml[:5000])
+    return {"title": clean_title(_first(_CHANNEL_TITLE, xml[:20000])), "items": items,
+            "language": ((lang.group(1) or lang.group(2)).lower() if lang else None)}
+
+
 def parse_feed(xml: str) -> dict:
     """Parse a feed XML string. Returns {"title", "language", "items": [...]}."""
     try:
         root = ET.fromstring(_prepare(xml))
     except ET.ParseError as err:
+        # Broken XML (unescaped characters, junk after the end...): read it the forgiving way.
+        feed = parse_feed_lenient(xml)
+        if feed["items"]:
+            return feed
         raise FeedError(f"the feed is not valid XML ({err})") from None
     kind = _local(root.tag)
 
@@ -219,6 +255,16 @@ def _decode(raw: bytes, charset: str | None) -> str:
     return raw.decode("utf-8", errors="replace")
 
 
+async def _read_all(res: aiohttp.ClientResponse) -> bytes:
+    """The whole answer. (content.read(n) returns only what has arrived so far, which cut big feeds short.)"""
+    buf = bytearray()
+    async for chunk in res.content.iter_chunked(64 * 1024):
+        buf += chunk
+        if len(buf) > MAX_BYTES:
+            raise FeedError("the feed is far too big")
+    return bytes(buf)
+
+
 async def _direct_fetch(session: aiohttp.ClientSession, url: str, timeout: float) -> str:
     status, web_page = 0, False
     # Each header set once; a "202 Accepted" (the site is still preparing the feed) gets one more try after a pause.
@@ -235,7 +281,7 @@ async def _direct_fetch(session: aiohttp.ClientSession, url: str, timeout: float
                                    timeout=aiohttp.ClientTimeout(total=timeout)) as res:
                 status = res.status
                 if 200 <= res.status < 300:
-                    raw = await res.content.read(MAX_BYTES)
+                    raw = await _read_all(res)
                     text = _decode(raw, res.charset)
                     if looks_like_feed(text):
                         return text
