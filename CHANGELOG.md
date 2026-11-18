@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.0.3] - 2026-11-18
+
+### Fixed
+
+- **Check for updates** reads the version from the release's own files, not the tag name, so a release tagged with the wrong number still installs. Before, it stopped with "the zip holds version …".
+
 ## [1.0.2] - 2026-11-18
 
 ### Changed

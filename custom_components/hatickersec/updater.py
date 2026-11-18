@@ -37,6 +37,7 @@ _LOGGER = logging.getLogger(__name__)
 GITHUB_RELEASES = "https://api.github.com/repos/Degederon/HATickerSec/releases/latest"
 GITHUB_LATEST_PAGE = "https://github.com/Degederon/HATickerSec/releases/latest"
 GITHUB_ARCHIVE = "https://github.com/Degederon/HATickerSec/archive/refs/tags/{tag}.zip"
+GITHUB_MANIFEST = "https://raw.githubusercontent.com/Degederon/HATickerSec/{tag}/custom_components/hatickersec/manifest.json"
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36"
 MAX_ZIP = 50 * 1024 * 1024
 CONFIG_FILE = Path(__file__).parent / "update-config.json"
@@ -149,9 +150,10 @@ class Updater:
                 rel = await res.json(content_type=None)
         except (aiohttp.ClientError, TimeoutError) as err:
             raise UpdateError(f"couldn’t reach GitHub ({err.__class__.__name__})", "http") from None
-        version = str(rel.get("tag_name") or "").lstrip("vV")
-        if not version:
-            raise UpdateError("the latest GitHub release has no version tag", "bad")
+        tag = str(rel.get("tag_name") or "")
+        if not tag:
+            raise UpdateError("the latest GitHub release has no tag", "bad")
+        version = await self._release_version(tag)
         asset = next((a for a in rel.get("assets") or [] if str(a.get("name", "")).lower().endswith(".zip")), None)
         notes = (rel.get("body") or "").strip()
         first = next((ln.strip(" -*#") for ln in notes.splitlines() if ln.strip(" -*#")), "")
@@ -177,7 +179,22 @@ class Updater:
         if not m:
             raise UpdateError("GitHub asked to wait a little — HATickerSec will try again later", "http")
         tag = m.group(1)
-        return {"version": tag.lstrip("vV"), "notes": "", "date": "", "installer": GITHUB_ARCHIVE.format(tag=tag), "size": 0, "sha256": ""}
+        return {"version": await self._release_version(tag), "notes": "", "date": "",
+                "installer": GITHUB_ARCHIVE.format(tag=tag), "size": 0, "sha256": ""}
+
+    async def _release_version(self, tag: str) -> str:
+        """The version inside the release's own files (so a mistyped tag can't block an update)."""
+        session = async_get_clientsession(self.hass)
+        try:
+            async with session.get(GITHUB_MANIFEST.format(tag=tag), headers={"User-Agent": UA},
+                                   timeout=aiohttp.ClientTimeout(total=30)) as res:
+                if res.status == 200:
+                    info = json.loads(await res.text())
+                    if info.get("version"):
+                        return str(info["version"])
+        except (aiohttp.ClientError, TimeoutError, ValueError):
+            pass
+        return tag.lstrip("vV")   # fall back to the tag name
 
     async def _read_manifest(self) -> dict:
         if self.manifest_url() == GITHUB_RELEASES:
