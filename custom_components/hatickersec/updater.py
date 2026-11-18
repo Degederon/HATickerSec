@@ -323,7 +323,9 @@ class Updater:
                 raise UpdateError("the zip has no HATickerSec integration in it", "bad")
             src, info = found
             if version and str(info.get("version")) != str(version):
-                raise UpdateError(f"the zip holds version {info.get('version')}, but latest.json says {version}", "bad")
+                raise UpdateError(
+                    f"the latest GitHub release is tagged v{version}, but its files are version {info.get('version')} — "
+                    f"edit the release so its tag is v{info.get('version')}", "bad")
             staged = target.parent / f".{DOMAIN}_new"
             old = target.parent / f".{DOMAIN}_old"
             shutil.rmtree(staged, ignore_errors=True)
